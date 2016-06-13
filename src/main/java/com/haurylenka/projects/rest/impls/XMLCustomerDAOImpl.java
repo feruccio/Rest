@@ -1,9 +1,12 @@
 package com.haurylenka.projects.rest.impls;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -29,6 +32,8 @@ public class XMLCustomerDAOImpl implements CustomerDAO {
 			return customers;
 		} catch (JAXBException e) {
 			throw new CustomerDAOException("Unable to get customers", e);
+		} catch (IOException e) {
+			throw new CustomerDAOException("Unable to find a resource", e);
 		}
 	}
 
@@ -72,6 +77,8 @@ public class XMLCustomerDAOImpl implements CustomerDAO {
 			return customer;
 		} catch (JAXBException e) {
 			throw new CustomerDAOException("Unable to get customers", e);
+		} catch (IOException e) {
+			throw new CustomerDAOException("Unable to find a resource", e);
 		}
 	}
 	
@@ -99,6 +106,8 @@ public class XMLCustomerDAOImpl implements CustomerDAO {
 			return customerPers;
 		} catch (JAXBException e) {
 			throw new CustomerDAOException("Unable to update a customer", e);
+		} catch (IOException e) {
+			throw new CustomerDAOException("Unable to find a resource", e);
 		}
 	}
 
@@ -134,13 +143,17 @@ public class XMLCustomerDAOImpl implements CustomerDAO {
 			return customer;
 		} catch (JAXBException e) {
 			throw new CustomerDAOException("Unable to delete a customer", e);
+		} catch (IOException e) {
+			throw new CustomerDAOException("Unable to find a resource", e);
 		}
 		
 	}
 	
-	private Reservation getReservation(String code) throws JAXBException {
+	private Reservation getReservation(String code) 
+			throws JAXBException, IOException {
 		Reservation result = null;
-		File file = new File("D://temp/reservations.xml");
+		String resourcePath = getResourcePath();
+		File file = new File(resourcePath);
 		JAXBContext ctx = JAXBContext.newInstance(Reservation.class);
 		Unmarshaller mrlr = ctx.createUnmarshaller();
 		Reservation reservation = (Reservation) mrlr.unmarshal(file);
@@ -151,14 +164,24 @@ public class XMLCustomerDAOImpl implements CustomerDAO {
 		return result;
 	}
 	
-	private void saveReservation(Reservation reservation) throws JAXBException {		
+	private void saveReservation(Reservation reservation) 
+			throws JAXBException, IOException {
+		String resourcePath = getResourcePath();
+		File file = new File(resourcePath);
+		JAXBContext ctx = JAXBContext.newInstance(Reservation.class);
+		Marshaller mrlr = ctx.createMarshaller();
+		mrlr.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 		synchronized (XMLCustomerDAOImpl.class) {
-			File file = new File("D://temp/reservations.xml");
-			JAXBContext ctx = JAXBContext.newInstance(Reservation.class);
-			Marshaller mrlr = ctx.createMarshaller();
-			mrlr.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 			mrlr.marshal(reservation, file);
 		}
+	}
+	
+	private String getResourcePath() throws IOException {
+		Properties props = new Properties();
+		InputStream is = XMLCustomerDAOImpl.class.getClassLoader()
+				.getResourceAsStream("config.properties");
+		props.load(is);
+		return props.getProperty("resourcePath");
 	}
 
 }
